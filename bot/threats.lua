@@ -1,7 +1,7 @@
 -- Learned threat model: which opponent animations hit, on which frame, and
 -- whether they must be parried high or low. Learned from getting hit, then
 -- refined by parry success/failure. Persisted between sessions.
-local T = { db = {}, path = "data/threats.lua" }
+local T = { db = {}, path = (BOT_DATA_DIR or "data/") .. "threats.lua" }
 
 local function key(char_anim) return string.format("%04X", char_anim) end
 

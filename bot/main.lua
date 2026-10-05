@@ -1,7 +1,10 @@
 -- Entry point. In FBNeo: Game > Lua Scripting > New Lua Script Window > run bot/main.lua
 -- Netplay is opt-in: set ALLOW_NETPLAY = true only on an account clearly named as a bot
 -- (e.g. "AI_..."), and tell opponents before the match.
-package.path = "bot/?.lua;" .. package.path
+-- Find our own folder so the bot works wherever it's unzipped.
+local HERE = (debug.getinfo(1, "S").source:sub(2):match("^(.*[/\\])") or "bot/")
+package.path = HERE .. "?.lua;" .. package.path
+BOT_DATA_DIR = HERE .. "../data/"
 local M = require("memory")
 local I = require("input")
 local T = require("threats")
