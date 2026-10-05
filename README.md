@@ -20,3 +20,6 @@ It starts out knowing nothing and gets stronger the more you hit it.
 `bot/ai_dudley.lua` holds the bot's character plan: it auto-picks Dudley with Super Art II (Rolling Thunder), pokes with cr.MK, anti-airs with Jet Upper, and cancels cr.MK into super on punishes. Up close it does cr.LK ×2 and only goes into super if that hit (a hit-confirm), mixed with throws. `B.AGGRESSION` in `ai_brain.lua` sets how much it rushes in.
 
 **Keep what it has learned:** that lives in `data/threats.lua`. When updating, replace only the `bot` folder and leave `data` alone.
+
+## Recommended version: `effie_addon/`
+The `effie_addon/` folder has a stronger Dudley AI built on effie's training mode, which has full frame data. See `effie_addon/README.md`. The original `bot/` and its learned `data/` are unchanged.
