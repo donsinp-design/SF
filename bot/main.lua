@@ -12,6 +12,10 @@ local B = require("ai_brain")
 
 local F_DEBUG = true
 local ALLOW_NETPLAY = false
+-- Simulated network lag for offline latency tests: the bot sees the game this
+-- many frames late (1 frame = ~16.7 ms). Try 0, 2, 4, 6 and compare parry rates.
+local DELAY_FRAMES = 0
+local history = {}
 B.me  = 2   -- side the bot controls (2 = you play P1 against it)
 B.opp = 3 - B.me
 
@@ -20,7 +24,10 @@ local frame = 0
 
 emu.registerbefore(function()
   if not ALLOW_NETPLAY and emu.isnetplay and emu.isnetplay() then return end
-  local s = { M.read_player(1), M.read_player(2) }
+  local live = { M.read_player(1), M.read_player(2) }
+  table.insert(history, live)
+  local s = history[math.max(1, #history - DELAY_FRAMES)]
+  while #history > DELAY_FRAMES + 1 do table.remove(history, 1) end
   B.step(s)
   I.apply(B.me, s[B.me].x < s[B.opp].x)
   frame = frame + 1
@@ -31,7 +38,8 @@ emu.registerbefore(function()
     gui.text(8, 40, string.format("opp anim %04X age %d  x %d y %d post %02X life %d/%d",
       o.anim, B.opp_anim_age, o.x, o.y, o.posture, s[1].life, s[2].life))
     local n = 0 for _ in pairs(T.db) do n = n + 1 end
-    gui.text(8, 50, "learned threats: " .. n)
+    gui.text(8, 50, string.format("learned threats: %d   simulated lag: %d frames (%d ms)",
+      n, DELAY_FRAMES, math.floor(DELAY_FRAMES * 1000 / 60)))
   end
 end)
 
