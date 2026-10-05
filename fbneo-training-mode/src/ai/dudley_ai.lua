@@ -20,9 +20,10 @@ local AI = {
    aggression = 0.75, -- 0 = patient footsies, 1 = constant pressure
    hurt_margin = 22,  -- pixels of opponent hurtbox in front of their origin
    show_debug = true,
-   -- "fight": play matches. "lab": discover combos vs the current P1 character,
-   -- save them, then switch back to "fight" automatically.
-   mode = "fight",
+   -- Study every opponent character it has no combos for yet: picks the
+   -- character for P1 itself, runs the combo lab, then moves to the next.
+   -- When every character is done it just fights. Don't touch the controller while it studies.
+   self_learn = true,
    use_ded = true,    -- D.E.D. meter option select
 }
 
@@ -33,6 +34,18 @@ local F, B, D, U = moves.F, moves.B, moves.D, moves.U
 local wait, cat = moves.wait, moves.cat
 local S, NEED = moves.S, moves.NEED
 local routes = lab.load_results()
+
+local ALL_CHARS = { "alex", "chunli", "dudley", "elena", "gouki", "hugo", "ibuki", "ken", "makoto", "necro",
+   "oro", "q", "remy", "ryu", "sean", "twelve", "urien", "yang", "yun" }
+local lab_char = nil  -- character the lab is currently studying
+
+local function next_unstudied()
+   if not AI.self_learn then return nil end
+   for _, c in ipairs(ALL_CHARS) do
+      if not (routes[c] and routes[c]._complete) then return c end
+   end
+   return nil
+end
 
 local SUPER_DAMAGE = moves.SUPER_DAMAGE
 -- characters Dudley can loop corner cr.HK on (wiki)
@@ -146,7 +159,7 @@ local function find_route(move)
    for _, bucket in ipairs({ "super", "ex", "meterless" }) do
       local r = entry[bucket]
       local ok = r and ((bucket == "super" and has_stock()) or (bucket == "ex" and has_ex()) or bucket == "meterless")
-      if ok and (not best or r.damage > best.damage) then best = r end
+      if ok and r.damage > 0 and (not best or r.damage > best.damage) then best = r end
    end
    -- a lethal or stun finish beats the lab's raw damage number
    if best and not super_kills() and not opp_near_stun() then return best end
@@ -157,7 +170,7 @@ end
 local function on_hit(move)
    local route = find_route(move)
    if route then
-      state.route = { exec = route_exec.new(route.chain), text = route.text }
+      state.route = { exec = route_exec.new(route.chain), text = route.text, data = route }
       state.last_action = move .. " > " .. route.text .. " (" .. route.damage .. ")"
       return
    end
@@ -380,18 +393,31 @@ function AI.update()
       inputs.clear_input_sequence(me)
    end
 
-   if AI.mode == "lab" then
-      if not lab.is_running() then
-         if lab.started then AI.mode = "fight"; routes = lab.load_results(); return end
-         lab.started = true
+   local target = next_unstudied()
+   if target then
+      if lab.is_running() then lab.update(AI); return end
+      if lab_char == target then
+         -- finished studying this character: reload and go pick the next one
+         routes, lab_char = lab.load_results(), nil
+         character_select.start_character_select_sequence()
+      elseif opp.char_str == target then
+         lab_char = target
          lab.start(AI)
+      else
+         character_select.start_character_select_sequence()
       end
-      lab.update(AI)
       return
    end
 
    if state.route then
       local r = route_exec.update(state.route.exec, me, opp)
+      if r == "failed" then
+         -- learn from real matches: a route that keeps dropping gets thrown out
+         local rt = state.route.data
+         rt.fails = (rt.fails or 0) + 1
+         if rt.fails >= 3 then rt.damage = -1 end
+         lab.save_results(routes)
+      end
       if r ~= "running" then state.route = nil end
       return
    end
@@ -437,6 +463,8 @@ function AI.install()
          selected_this_screen = true
          apply_settings()
          character_select.force_select_character(AI.player_id, "dudley", AI.super_art, "LP")
+         local target = next_unstudied()
+         if target then character_select.force_select_character(3 - AI.player_id, target, 1, "LP") end
       end
       return original_select(input)
    end

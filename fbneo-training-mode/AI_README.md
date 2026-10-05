@@ -10,12 +10,12 @@ This folder is effie's 3rd Strike training mode (https://github.com/effie3rd/3rd
 To turn the AI off, set `enabled = false` at the top of `src/ai/dudley_ai.lua`. Other settings there: `super_art`, `aggression`, `hurt_margin`, `show_debug`.
 
 ## Combo lab (discovering combos)
-1. In `src/ai/dudley_ai.lua`, set `mode = "lab"`.
-2. Press **Training**, pick the opponent character for P1, and **don't touch the controller**.
+1. Nothing to set: `self_learn = true` is the default in `src/ai/dudley_ai.lua`.
+2. Press **Training** and **don't touch the controller**. It picks both characters itself.
 3. The game runs in turbo. For each starter (st.HK, cr.HK, f.MK, MP, cr.LK, dart shot), at midscreen and in the corner, it tries every follow-up at every timing from a save state. It keeps the routes that are true combos and extends them up to 4 steps.
 4. The best route per meter budget (meterless, EX, super) is saved to `saved/dudley_combos.lua`, per opponent character. The AI then switches back to fighting and uses those routes automatically.
 
-Run it once per opponent character. One character takes roughly 30–60 minutes. To start over, delete `saved/dudley_combos.lua`.
+It runs by itself: on start it studies every opponent character it has no combos for yet, choosing P1 automatically. Leave the controller alone until the screen stops showing COMBO LAB. Delete `saved/dudley_combos.lua` to make it study everything again. Routes that fail 3 times in real matches are dropped.
 
 ## Other techniques it uses
 - **D.E.D.:** when meter is just short of a stock, the super is buffered behind st.HK, MP, f.MK or dart shot. It only comes out if the hit's meter gain completes the stock.
