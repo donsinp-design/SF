@@ -20,44 +20,21 @@ local AI = {
    aggression = 0.75, -- 0 = patient footsies, 1 = constant pressure
    hurt_margin = 22,  -- pixels of opponent hurtbox in front of their origin
    show_debug = true,
+   -- "fight": play matches. "lab": discover combos vs the current P1 character,
+   -- save them, then switch back to "fight" automatically.
+   mode = "fight",
+   use_ded = true,    -- D.E.D. meter option select
 }
 
-local F, B, D, U = "forward", "back", "down", "up"
+local moves = require("src.ai.dudley_moves")
+local route_exec = require("src.ai.route_exec")
+local lab = require("src.ai.combo_lab")
+local F, B, D, U = moves.F, moves.B, moves.D, moves.U
+local wait, cat = moves.wait, moves.cat
+local S, NEED = moves.S, moves.NEED
+local routes = lab.load_results()
 
-local function wait(n) local t = {} for i = 1, n do t[i] = {} end return t end
-local function cat(...)
-   local out = {}
-   for _, part in ipairs({ ... }) do for _, f in ipairs(part) do out[#out + 1] = f end end
-   return out
-end
-local function qcb_f(...) return { { B }, { D, B }, { D }, { D, F }, { F, ... } } end -- 41236
-local function dp(...) return { { F }, { D }, { D, F, ... } } end                     -- 623
-local function hcb(...) return { { F }, { D, F }, { D }, { D, B }, { B, ... } } end   -- 63214
-
--- Input sequences, one table per frame, directions relative to facing.
-local S = {
-   HK = { { "HK" } }, MP = { { "MP" } }, f_MK = { { F, "MK" } }, f_HK = { { F, "HK" } },
-   d_LK = { { D, "LK" } }, d_HK = { { D, "HK" } }, MK = { { "MK" } },
-   throw = { { F, "LP", "LK" } },
-   dp_HP = dp("HP"), dp_MP = dp("MP"), dp_EX = dp("MP", "HP"),
-   mgb_EX = qcb_f("MP", "HP"), mgb_HP = qcb_f("HP"), mgb_LP = qcb_f("LP"),
-   ducking_upper = cat(qcb_f("MK"), wait(3), { { "LK" } }),  -- 41236MK~K
-   ssb_EX = hcb("MK", "HK"),
-   -- 236236 + HP then piano MP, LP so the super comes out on the first legal frame
-   super = { { D }, { D, F }, { F }, { D }, { D, F }, { F, "HP" }, { "MP" }, { "LP" } },
-   -- SGGK: HK~LP+LK. Throw if they stand still, tech if they throw, HK if the
-   -- preceding parry tap caught an attack.
-   sggk = { { F }, { "HK" }, { "LP", "LK" } },
-   parry_poke = { { F }, {}, { "HK" } },     -- parry-buffered st.HK
-   dash = { { F }, {}, { F } },
-   walk_f = { { F }, { F }, { F }, { F } },
-   walk_b = { { B }, { B }, { B }, { B } },
-}
-
--- frames from first input to first active frame
-local NEED = { HK = 5, MP = 3, f_MK = 5, f_HK = 12, d_LK = 4, d_HK = 15, dp_HP = 6, mgb_HP = 21, mgb_EX = 20, super = 6 }
--- damage of each super on a standing opponent (wiki), used for kill checks
-local SUPER_DAMAGE = { 60, 60, 46 }
+local SUPER_DAMAGE = moves.SUPER_DAMAGE
 -- characters Dudley can loop corner cr.HK on (wiki)
 local DHK_LOOP = { chunli = true, makoto = true, dudley = true, oro = true, ibuki = true, elena = true,
    necro = true, alex = true, remy = true, q = true }
@@ -97,7 +74,32 @@ local function opp_longest_poke()
    return best
 end
 
+-- frames until Dudley can act again (0 = now), looking up to 8 frames ahead
+local function frames_until_free()
+   for k = 0, 8 do
+      if advanced_control.is_idle_timing(me, k, true) then return k end
+   end
+   return nil
+end
+
+-- D.E.D.: just under a full stock, buffer the super behind the normal. A hit
+-- gives enough meter for the super to come out; a block doesn't, so nothing happens.
+local function ded_window(move)
+   local g = moves.GAIN[move]
+   if not (AI.use_ded and g and me.meter_count == 0 and me.max_meter_gauge > 0) then return false end
+   local need = me.max_meter_gauge - me.meter_gauge
+   return need <= g[1] and need > g[2]
+end
+
 local function act(name, seq, confirm_as, height)
+   -- buffer: start the motion during recovery so the button lands on the first free frame
+   local free_in = frames_until_free() or 0
+   local pad = math.max(0, free_in - (#seq - 1))
+   if pad > 0 then seq = cat(wait(pad), seq) end
+   if confirm_as and ded_window(confirm_as) then
+      seq = cat(seq, wait(2), S.super)
+      name = name .. " (D.E.D.)"
+   end
    inputs.queue_input_sequence(me, seq, 0, true)
    state.last_action = name
    if confirm_as then
@@ -106,9 +108,11 @@ local function act(name, seq, confirm_as, height)
    if height then habits[height].tries = habits[height].tries + 1 end
 end
 
+-- free now, or within a few frames (inputs get buffered to land on the first free frame)
 local function can_act()
-   return me.is_idle and me.remaining_freeze_frames == 0 and not me.is_blocking
-      and not inputs.is_playing_input_sequence(me)
+   if me.is_blocking or inputs.is_playing_input_sequence(me) then return false end
+   local k = frames_until_free()
+   return k ~= nil and k <= 4
 end
 
 local function opp_stuck_for(need) return not advanced_control.is_idle_timing(opp, need, true) end
@@ -121,6 +125,10 @@ local function start_juggle(source) state.juggle = { source = source, d_hk = 0, 
 local function cancel_ender(from)
    if super_kills() then return act(from .. " xx super (lethal)", S.super) end
    if opp_near_stun() then return act(from .. " xx HP Jet Upper (stun)", S.dp_HP) end
+   if has_stock() and opp.is_crouching and AI.super_art ~= 2 and from ~= "f_MK" then
+      -- EX MGB whiffs on many crouchers: buffer the super through LK Ducking instead
+      return act(from .. " xx LK Ducking xx super", S.ducking_super)
+   end
    if has_stock() then return act(from .. " xx super", S.super) end
    if has_ex() and (from == "HK" or from == "MP") then
       act(from .. " xx EX MGB", S.mgb_EX); start_juggle("ex_mgb"); return
@@ -128,7 +136,31 @@ local function cancel_ender(from)
    act(from .. " xx HP Jet Upper", S.dp_HP)
 end
 
+-- best discovered route for this starter, position and the meter we have
+local function find_route(move)
+   local by_char = routes[opp.char_str]
+   if not by_char then return nil end
+   local entry = by_char[move .. "_" .. (opp_cornered() and "corner" or "mid")]
+   if not entry then return nil end
+   local best
+   for _, bucket in ipairs({ "super", "ex", "meterless" }) do
+      local r = entry[bucket]
+      local ok = r and ((bucket == "super" and has_stock()) or (bucket == "ex" and has_ex()) or bucket == "meterless")
+      if ok and (not best or r.damage > best.damage) then best = r end
+   end
+   -- a lethal or stun finish beats the lab's raw damage number
+   if best and not super_kills() and not opp_near_stun() then return best end
+   if best and super_kills() and best.damage >= opp.life then return best end
+   return nil
+end
+
 local function on_hit(move)
+   local route = find_route(move)
+   if route then
+      state.route = { exec = route_exec.new(route.chain), text = route.text }
+      state.last_action = move .. " > " .. route.text .. " (" .. route.damage .. ")"
+      return
+   end
    if move == "HK" or move == "MP" or move == "f_MK" then
       cancel_ender(move)
    elseif move == "d_LK" then
@@ -231,6 +263,28 @@ local function try_punish()
    return false
 end
 
+-- what move the opponent is doing, read from the frame data every frame
+local function opp_move()
+   if not opp.is_attacking then return nil end
+   local fd = framedata.find_move_frame_data(opp.char_str, opp.animation)
+   if not fd then return nil end
+   local first = framedata.get_first_hit_frame(opp.char_str, opp.animation)
+   return { name = fd.name or "?", frames_to_hit = first - opp.animation_frame, reach = framedata.get_hitbox_max_range(opp.char_str, opp.animation) }
+end
+
+-- Beat slow moves during their startup instead of waiting to parry them:
+-- Rocket Upper is invincible on frames 1-8, st.HK is 5 frames with a strong hitbox.
+local function try_interrupt(mv)
+   if not mv or mv.frames_to_hit <= 0 or opp.is_airborne then return false end
+   if AI.super_art == 1 and has_stock() and mv.frames_to_hit >= 2 and dist() < 90 and (super_kills() or opp.life > 60) then
+      act("interrupt " .. mv.name .. ": Rocket Upper", S.super); return true
+   end
+   if mv.frames_to_hit > NEED.HK + 2 and in_reach("HK") then
+      act("interrupt " .. mv.name .. ": HK", S.HK, "HK"); return true
+   end
+   return false
+end
+
 local function try_after_parry()
    if not state.parried then return false end
    state.parried = false
@@ -326,18 +380,36 @@ function AI.update()
       inputs.clear_input_sequence(me)
    end
 
+   if AI.mode == "lab" then
+      if not lab.is_running() then
+         if lab.started then AI.mode = "fight"; routes = lab.load_results(); return end
+         lab.started = true
+         lab.start(AI)
+      end
+      lab.update(AI)
+      return
+   end
+
+   if state.route then
+      local r = route_exec.update(state.route.exec, me, opp)
+      if r ~= "running" then state.route = nil end
+      return
+   end
    if update_confirm() then return end
    if state.link_super and advanced_control.is_idle_timing(me, NEED.super, true) then
       state.link_super = false; act("dart shot > super (link)", S.super); return
    end
    if update_juggle() then return end
    if can_act() then
-      local _ = try_after_parry() or try_punish() or try_anti_air() or try_oki()
+      local mv = opp_move()
+      state.opp_move = mv and (mv.name .. " (" .. mv.frames_to_hit .. "f)") or state.opp_move
+      local _ = try_after_parry() or try_punish() or try_interrupt(mv) or try_anti_air() or try_oki()
          or (not opp.is_attacking and neutral())
    end
 
    if AI.show_debug then
-      gui.text(8, 200, string.format("AI: %s | meter %d/%d | opp stun %d/%d", state.last_action,
+      gui.text(8, 192, string.format("AI: %s", state.last_action))
+      gui.text(8, 200, string.format("opp: %s | meter %d/%d | opp stun %d/%d", state.opp_move or "-",
          me.meter_count, me.meter_gauge, math.floor(opp.stun_bar), opp.stun_bar_max))
    end
 end
