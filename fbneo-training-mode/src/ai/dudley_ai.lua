@@ -25,6 +25,10 @@ local AI = {
    -- When every character is done it just fights. Don't touch the controller while it studies.
    self_learn = true,
    use_ded = true,    -- D.E.D. meter option select
+   -- Fight the arcade CPU instead of a human: the AI inserts a coin and starts as
+   -- P2 by itself, and P1 is left to the CPU. Set the CPU to its hardest level
+   -- once in the service menu (F2 > difficulty 8); the arcade board remembers it.
+   vs_cpu = false,
    lag_frames = 0,    -- simulated online lag: 0 = offline, 2 = ~33 ms, 4 = ~67 ms, 7 = ~117 ms
 }
 
@@ -453,8 +457,25 @@ local function apply_settings()
    t.infinite_time = false
 end
 
+local function install_vs_cpu()
+   AI.self_learn = false
+   -- don't let effie jump to its two-player versus character select
+   character_select.start_character_select_sequence = function() end
+   -- outside a match, keep inserting a coin and pressing start for the AI's side
+   local original_update_input = inputs.update_input
+   inputs.update_input = function(input, players)
+      original_update_input(input, players)
+      if not gamestate.is_in_match and not gamestate.is_in_character_select then
+         local f = gamestate.frame_number % 60
+         local P = "P" .. AI.player_id .. " "
+         if f < 3 then input[P .. "Coin"] = true elseif f >= 30 and f < 33 then input[P .. "Start"] = true end
+      end
+   end
+end
+
 function AI.install()
    if not AI.enabled then return end
+   if AI.vs_cpu then install_vs_cpu() end
    local original_update = modules.update
    modules.update = function(...)
       original_update(...)
