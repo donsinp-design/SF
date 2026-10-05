@@ -25,6 +25,14 @@ local frame = 0
 emu.registerbefore(function()
   if not ALLOW_NETPLAY and emu.isnetplay and emu.isnetplay() then return end
   local live = { M.read_player(1), M.read_player(2) }
+  -- Only play during a round (life is 0..160). On menus and character select
+  -- life reads as garbage like 255, so hand the controls back to you.
+  local in_round = live[1].life <= 160 and live[2].life <= 160
+  if not in_round then
+    I.clear(); history = {}; B.prev = nil
+    if F_DEBUG then gui.text(8, 40, "AI waiting for round start (pick P2 yourself)") end
+    return
+  end
   table.insert(history, live)
   local s = history[math.max(1, #history - DELAY_FRAMES)]
   while #history > DELAY_FRAMES + 1 do table.remove(history, 1) end
