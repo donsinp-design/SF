@@ -2,18 +2,35 @@
 
     python3 probe.py
 
-It tries common layouts and prints the one where both life bars read 160 (full health).
-Copy the suggested --ram-offset / --swap32 into ra_bot.py's command line.
+Prints RetroArch's raw answers, then the layout where both life bars read 160.
 """
-from ra_link import RetroArch
+import socket
+
+from ra_link import RetroArch, CMD_PORT
 
 P1_LIFE, P2_LIFE = 0x02068D0B, 0x020691A3
 
-ra = RetroArch()
-if ra.read_raw(0, 1) is None:
-    print("No answer from RetroArch. Turn on Settings > Network > Network Commands, then restart content.")
-    raise SystemExit(1)
 
+def ask(cmd):
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.settimeout(1.0)
+    s.sendto((cmd + "\n").encode(), ("127.0.0.1", CMD_PORT))
+    try:
+        return s.recvfrom(65536)[0].decode(errors="ignore").strip()
+    except socket.timeout:
+        return None
+
+
+version = ask("VERSION")
+print("VERSION ->", version)
+if version is None:
+    print("RetroArch is not answering on port %d. Check Network Commands is ON, then fully quit and reopen RetroArch." % CMD_PORT)
+    raise SystemExit(1)
+print("GET_STATUS ->", ask("GET_STATUS"))
+for addr in (P1_LIFE, P1_LIFE - 0x02000000, 0):
+    print("READ_CORE_MEMORY %x ->" % addr, ask("READ_CORE_MEMORY %x 4" % addr))
+
+ra = RetroArch()
 found = False
 for offset in (0x0, 0x02000000):
     for swap in (False, True):
@@ -24,5 +41,4 @@ for offset in (0x0, 0x02000000):
             print("  ^ looks right:  python3 ra_bot.py --ram-offset %#x%s" % (offset, " --swap32" if swap else ""))
             found = True
 if not found:
-    print("\nNo layout matched. The FBNeo core may not expose CPS3 RAM to RetroArch;"
-          " send this output to whoever is helping you.")
+    print("\nNo layout matched. Send this whole output to whoever is helping you.")
