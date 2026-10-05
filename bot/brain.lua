@@ -10,6 +10,9 @@ B.PUNISH = I.seq(I.hold(2,2,{"MK"}), I.hold(2,10), I.hold(3,1), I.hold(6,1,{"HP"
 B.POKE   = I.seq(I.hold(2,2,{"MK"}))
 B.ANTIAIR= I.seq(I.hold(2,2,{"HP"}))
 
+B.MY_POKE_RANGE = 110  -- tip range of B.POKE (measure in training mode)
+B.SPACING_MARGIN = 6   -- pixels outside their reach
+
 local PARRY_LEAD = 2   -- frames before the active frame to tap
 local function parry(low)
   -- 3S parry: neutral, then tap forward (high) or down (low) inside the window.
@@ -60,8 +63,14 @@ function B.step(s)
   -- 4. whiff punish: a known attack has passed its active frames without contact
   if t and B.opp_anim_age > t.hit + 2 and dist < t.dist + 30 then I.push(B.PUNISH) return end
 
-  -- 5. neutral spacing poke
-  if dist < 110 and math.random() < 0.08 then I.push(B.POKE) end
+  -- 5. footsies: hover just outside the opponent's longest learned attack,
+  --    so their pokes whiff and ours land at the tip.
+  local reach = B.MY_POKE_RANGE
+  for _, e in pairs(T.db) do reach = math.max(reach, e.dist) end
+  local sweet = reach + B.SPACING_MARGIN
+  if dist > sweet + 8 then I.push(I.hold(6, 2))          -- walk in
+  elseif dist < sweet - 8 then I.push(I.hold(4, 2))      -- walk back
+  elseif dist <= B.MY_POKE_RANGE and math.random() < 0.15 then I.push(B.POKE) end
 end
 
 return B

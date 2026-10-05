@@ -1,5 +1,6 @@
 -- Entry point. In FBNeo: Game > Lua Scripting > New Lua Script Window > run bot/main.lua
--- Offline only (training mode / vs CPU / you vs bot). Disabled while netplay is active.
+-- Netplay is opt-in: set ALLOW_NETPLAY = true only on an account clearly named as a bot
+-- (e.g. "AI_..."), and tell opponents before the match.
 package.path = "bot/?.lua;" .. package.path
 local M = require("memory")
 local I = require("input")
@@ -7,6 +8,7 @@ local T = require("threats")
 local B = require("brain")
 
 local F_DEBUG = true
+local ALLOW_NETPLAY = false
 B.me  = 2   -- side the bot controls (2 = you play P1 against it)
 B.opp = 3 - B.me
 
@@ -14,7 +16,7 @@ T.load()
 local frame = 0
 
 emu.registerbefore(function()
-  if emu.isnetplay and emu.isnetplay() then return end
+  if not ALLOW_NETPLAY and emu.isnetplay and emu.isnetplay() then return end
   local s = { M.read_player(1), M.read_player(2) }
   B.step(s)
   I.apply(B.me, s[B.me].x < s[B.opp].x)

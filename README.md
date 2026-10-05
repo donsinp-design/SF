@@ -1,7 +1,7 @@
 # 3rd Strike reaction bot (FBNeo Lua)
 
 A bot that learns your attacks as you play, parries them on reaction, predicts your habits, and punishes whiffs.
-It runs **offline only** (training mode, vs CPU, or you vs the bot). It turns itself off during netplay.
+By default it runs offline only. To use it on netplay, set `ALLOW_NETPLAY = true` in `bot/main.lua`, play on an account clearly named as a bot (e.g. `AI_...`), and tell your opponent before each match.
 
 ## Run
 1. Open `sfiii3n` in FBNeo (or Fightcade's FBNeo in offline/training).
