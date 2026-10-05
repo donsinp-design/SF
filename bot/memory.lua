@@ -1,4 +1,4 @@
--- RAM map for sfiii3n (Street Fighter III: 3rd Strike, Japan 990608) on FBNeo.
+-- RAM map for sfiii3nr1 (3rd Strike Japan 990512, NO CD), the ROM Fightcade uses.
 -- Offsets come from community training-mode research. Verify them with
 -- debug overlay (F_DEBUG in main.lua) before trusting the bot; ROM revisions differ.
 local M = {}
