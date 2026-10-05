@@ -25,6 +25,7 @@ local AI = {
    -- When every character is done it just fights. Don't touch the controller while it studies.
    self_learn = true,
    use_ded = true,    -- D.E.D. meter option select
+   lag_frames = 0,    -- simulated online lag: 0 = offline, 2 = ~33 ms, 4 = ~67 ms, 7 = ~117 ms
 }
 
 local moves = require("src.ai.dudley_moves")
@@ -109,6 +110,7 @@ local function act(name, seq, confirm_as, height)
    local free_in = frames_until_free() or 0
    local pad = math.max(0, free_in - (#seq - 1))
    if pad > 0 then seq = cat(wait(pad), seq) end
+   seq = moves.lagged(seq)
    if confirm_as and ded_window(confirm_as) then
       seq = cat(seq, wait(2), S.super)
       name = name .. " (D.E.D.)"
@@ -384,6 +386,7 @@ end
 function AI.update()
    if not gamestate.is_in_match then return end
    me, opp = gamestate.player_objects[AI.player_id], gamestate.player_objects[3 - AI.player_id]
+   moves.lag_frames = AI.lag_frames
    selected_this_screen = false
    if not framedata.is_loaded or not gamestate.is_in_match_playable or me.char_str ~= "dudley" then return end
 

@@ -2,6 +2,17 @@
 -- One table per frame; directions are relative to facing.
 local M = {}
 
+-- Simulated online lag, in frames (1 frame = ~17 ms). Every input the AI sends
+-- arrives this many frames late, like delay-based netplay. Set from dudley_ai.lua.
+M.lag_frames = 0
+function M.lagged(seq)
+   if M.lag_frames <= 0 then return seq end
+   local out = {}
+   for i = 1, M.lag_frames do out[i] = {} end
+   for _, f in ipairs(seq) do out[#out + 1] = f end
+   return out
+end
+
 local F, B, D, U = "forward", "back", "down", "up"
 M.F, M.B, M.D, M.U = F, B, D, U
 

@@ -33,8 +33,9 @@ function E.update(ex, me, opp)
          go = ex.ready_since and frame - ex.ready_since >= el.delay
       end
       if go then
-         inputs.queue_input_sequence(me, step.seq, 0, true)
-         ex.press_frame = frame + #step.seq - 1
+         local seq = moves.lagged(step.seq)
+         inputs.queue_input_sequence(me, seq, 0, true)
+         ex.press_frame = frame + #seq - 1
          ex.phase = "await_hit"
       elseif opp.is_idle and not opp.is_airborne then
          return "failed"
