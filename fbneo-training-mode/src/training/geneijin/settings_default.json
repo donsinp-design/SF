@@ -1,0 +1,12 @@
+{
+  "match_savestate_dummy": "yun",
+  "score": 0,
+  "match_savestate_player": "",
+  "moves": [
+    true,
+    true,
+    true,
+    true
+  ],
+  "controllers": [ "player", "geneijin" ]
+}

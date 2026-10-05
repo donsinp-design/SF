@@ -21,5 +21,8 @@ It starts out knowing nothing and gets stronger the more you hit it.
 
 **Keep what it has learned:** that lives in `data/threats.lua`. When updating, replace only the `bot` folder and leave `data` alone.
 
-## Recommended version: `effie_addon/`
-The `effie_addon/` folder has a stronger Dudley AI built on effie's training mode, which has full frame data. See `effie_addon/README.md`. The original `bot/` and its learned `data/` are unchanged.
+## Recommended version: `fbneo-training-mode/`
+This is a complete package: effie's training mode with the Dudley AI built in. Copy the folder's contents into `Fightcade/emulator/fbneo/fbneo-training-mode/` and press **Training** in Fightcade. See `fbneo-training-mode/AI_README.md`.
+The original `bot/` and its learned `data/` are unchanged.
+
+The repo is licensed GPL-3.0 because it includes effie's GPL-3.0 code.
