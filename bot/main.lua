@@ -5,10 +5,10 @@
 local HERE = (debug.getinfo(1, "S").source:sub(2):match("^(.*[/\\])") or "bot/")
 package.path = HERE .. "?.lua;" .. package.path
 BOT_DATA_DIR = HERE .. "../data/"
-local M = require("memory")
-local I = require("input")
-local T = require("threats")
-local B = require("brain")
+local M = require("ai_memory")
+local I = require("ai_input")
+local T = require("ai_threats")
+local B = require("ai_brain")
 
 local F_DEBUG = true
 local ALLOW_NETPLAY = false

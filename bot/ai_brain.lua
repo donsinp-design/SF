@@ -1,7 +1,7 @@
 -- Decision layer. Priority: parry incoming hit > punish recovery > neutral pressure.
-local I = require("input")
-local T = require("threats")
-local P = require("predictor")
+local I = require("ai_input")
+local T = require("ai_threats")
+local P = require("ai_predictor")
 
 local B = { me = 1, opp = 2, prev = nil, opp_anim_age = 0, pending = nil }
 
