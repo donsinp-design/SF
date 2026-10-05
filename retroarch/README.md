@@ -11,13 +11,12 @@ RetroArch has no Lua, so this is a Python program that reads 3rd Strike's memory
 3. In RetroArch, add a P2 coin and press P2 start. Pick Dudley for P2 yourself.
 4. In Terminal, during a round with both players at full health:
    ```
-   cd path/to/SF/retroarch
-   python3 probe.py
+   cd path/to/SF/retroarch && python3 probe.py
    ```
-   It prints the right settings for your setup.
-5. Run the bot with those settings, for example:
+   When it asks, let P1 take one hit, then press Enter. It prints the right setting.
+5. Run the bot with that setting, for example:
    ```
-   python3 ra_bot.py --ram-offset 0x0
+   python3 ra_bot.py --swap 4
    ```
    Add `--delay 4` to simulate 4 frames of lag.
 

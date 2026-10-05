@@ -127,13 +127,12 @@ class Brain:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--player", type=int, default=2)
-    ap.add_argument("--ram-offset", type=lambda v: int(v, 0), default=0)
-    ap.add_argument("--swap32", action="store_true")
+    ap.add_argument("--swap", type=int, default=4, choices=(1, 2, 4), help="byte layout found by probe.py")
     ap.add_argument("--delay", type=int, default=0, help="simulated extra lag in frames")
     ap.add_argument("--aggression", type=float, default=0.6)
     args = ap.parse_args()
 
-    ra = RetroArch(player=args.player, ram_offset=args.ram_offset, swap32=args.swap32)
+    ra = RetroArch(player=args.player, swap=args.swap)
     brain = Brain(args.player, args.delay, args.aggression)
     print("Running. Ctrl+C to stop. Learned threats:", len(brain.threats))
     frame_time, last_save = 1 / 60, time.time()

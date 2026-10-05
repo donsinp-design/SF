@@ -11,21 +11,23 @@ JOY = {"B": 0, "Y": 1, "SELECT": 2, "START": 3, "UP": 4, "DOWN": 5, "LEFT": 6, "
 
 
 class RetroArch:
-    def __init__(self, host="127.0.0.1", player=2, ram_base=0x02000000, ram_offset=0, swap32=False):
+    def __init__(self, host="127.0.0.1", player=2, swap=4):
         self.host = host
         self.cmd = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.cmd.settimeout(0.05)
         self.pad = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.pad_port = PAD_PORT_BASE + player - 1
-        self.ram_base = ram_base      # CPS3 address that maps to RetroArch address `ram_offset`
-        self.ram_offset = ram_offset
-        self.swap32 = swap32          # some cores store big-endian RAM byte-swapped per 32-bit word
+        # CPS3 RAM starts at 0x02000000; RetroArch exposes it from 0. The SH-2 is
+        # big-endian, so the core may store it byte-swapped in 2- or 4-byte words.
+        self.ram_base = 0x02000000
+        self.swap = swap  # 1 = as-is, 2 = 16-bit swapped, 4 = 32-bit swapped
         self.held = {}
 
     # ---- memory -------------------------------------------------------
     def read_raw(self, addr, length):
-        msg = "READ_CORE_MEMORY %x %d\n" % (addr, length)
-        self.cmd.sendto(msg.encode(), (self.host, CMD_PORT))
+        # READ_CORE_RAM reads the RAM RetroArch exposes for achievements;
+        # FBNeo has no memory map for READ_CORE_MEMORY on CPS3.
+        self.cmd.sendto(("READ_CORE_RAM %x %d\n" % (addr, length)).encode(), (self.host, CMD_PORT))
         try:
             data, _ = self.cmd.recvfrom(65536)
         except socket.timeout:
@@ -36,15 +38,14 @@ class RetroArch:
         return bytes(int(b, 16) for b in parts[2:])
 
     def read(self, cps3_addr, length):
-        """Read `length` bytes at a CPS3 address, undoing the 32-bit swap if needed."""
-        if not self.swap32:
-            return self.read_raw(cps3_addr - self.ram_base + self.ram_offset, length)
-        start = (cps3_addr & ~3)
-        end = (cps3_addr + length + 3) & ~3
-        raw = self.read_raw(start - self.ram_base + self.ram_offset, end - start)
+        """Read `length` bytes at a CPS3 address in the game's own byte order."""
+        w = self.swap
+        start = cps3_addr & ~(w - 1)
+        end = (cps3_addr + length + w - 1) & ~(w - 1)
+        raw = self.read_raw(start - self.ram_base, end - start)
         if raw is None:
             return None
-        fixed = b"".join(raw[i:i + 4][::-1] for i in range(0, len(raw), 4))
+        fixed = b"".join(raw[i:i + w][::-1] for i in range(0, len(raw), w))
         off = cps3_addr - start
         return fixed[off:off + length]
 
