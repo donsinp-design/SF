@@ -2,15 +2,17 @@
 local I = require("ai_input")
 local T = require("ai_threats")
 local P = require("ai_predictor")
+local D = require("ai_dudley")
 
 local B = { me = 1, opp = 2, prev = nil, opp_anim_age = 0, pending = nil }
 
--- Edit per character: punish combo and neutral pokes (numpad + buttons).
-B.PUNISH = I.seq(I.hold(2,2,{"MK"}), I.hold(2,10), I.hold(3,1), I.hold(6,1,{"HP"}))
-B.POKE   = I.seq(I.hold(2,2,{"MK"}))
-B.ANTIAIR= I.seq(I.hold(2,2,{"HP"}))
+B.PUNISH  = D.PUNISH
+B.POKE    = D.CR_MK
+B.ANTIAIR = D.JET_UPPER
+B.AGGRESSION = 0.6     -- 0 = patient footsies, 1 = constant pressure
+B.confirm = nil        -- pending hit-confirm {life}
 
-B.MY_POKE_RANGE = 110  -- tip range of B.POKE (measure in training mode)
+B.MY_POKE_RANGE = D.POKE_RANGE
 B.SPACING_MARGIN = 6   -- pixels outside their reach
 
 local PARRY_LEAD = 2   -- frames before the active frame to tap
@@ -42,6 +44,13 @@ function B.step(s)
   end
 
   B.prev = s
+  B.frame = (B.frame or 0) + 1
+
+  -- hit-confirm: if the cr.LK string connected, cancel into super
+  if B.confirm and not I.busy() then
+    if op.life < B.confirm.life then I.push(D.SUPER) end
+    B.confirm = nil; return
+  end
   if I.busy() then return end
 
   -- 1. reactive parry on a known threat
@@ -63,7 +72,18 @@ function B.step(s)
   -- 4. whiff punish: a known attack has passed its active frames without contact
   if t and B.opp_anim_age > t.hit + 2 and dist < t.dist + 30 then I.push(B.PUNISH) return end
 
-  -- 5. footsies: hover just outside the opponent's longest learned attack,
+  -- 5. aggression: in close, mix pressure-into-confirm and throws
+  if dist <= D.THROW_RANGE + 20 and math.random() < B.AGGRESSION * 0.25 then
+    if math.random() < 0.6 then
+      I.push(D.CONFIRM_STARTER); B.confirm = { life = op.life }
+    else I.push(D.THROW) end
+    return
+  end
+  if dist > D.POKE_RANGE and math.random() < B.AGGRESSION * 0.03 then
+    I.push(D.DASH_IN); return
+  end
+
+  -- 6. footsies: hover just outside the opponent's longest learned attack,
   --    so their pokes whiff and ours land at the tip.
   local reach = B.MY_POKE_RANGE
   for _, e in pairs(T.db) do reach = math.max(reach, e.dist) end

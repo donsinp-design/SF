@@ -15,3 +15,8 @@ By default it runs offline only. To use it on netplay, set `ALLOW_NETPLAY = true
 - `ai_brain.lua` acts in this order: parry → anti-air → whiff punish → poke. Edit `PUNISH`/`POKE`/`ANTIAIR` for your character.
 
 It starts out knowing nothing and gets stronger the more you hit it.
+
+## Dudley
+`bot/ai_dudley.lua` holds the bot's character plan: it auto-picks Dudley with Super Art II (Rolling Thunder), pokes with cr.MK, anti-airs with Jet Upper, and cancels cr.MK into super on punishes. Up close it does cr.LK ×2 and only goes into super if that hit (a hit-confirm), mixed with throws. `B.AGGRESSION` in `ai_brain.lua` sets how much it rushes in.
+
+**Keep what it has learned:** that lives in `data/threats.lua`. When updating, replace only the `bot` folder and leave `data` alone.
