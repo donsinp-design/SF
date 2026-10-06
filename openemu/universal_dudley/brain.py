@@ -111,12 +111,16 @@ class Brain:
     # the EX input (MP+HP) becomes the normal version. Every branch combos.
     SUPER = [("DOWN",),("DOWN","FORWARD"),("FORWARD",),("DOWN",),("DOWN","FORWARD"),("FORWARD","HP")]
     EX_JET = [("FORWARD",),("DOWN",),("DOWN","FORWARD","MP","HP"),(),()]
+    HP_JET = [("FORWARD",),("DOWN",),("DOWN","FORWARD","HP"),(),()]
+    # frames after the starter's button in which a cancel still works (wiki)
+    CANCEL_WINDOW = {"2LK 2LK": 10, "MP": 16, "st.HK": 12, "parry > st.HK": 12}
     EX_MGB = [("BACK",),("DOWN","BACK"),("DOWN",),("DOWN","FORWARD"),("FORWARD","MP","HP"),(),()]
 
     def _starter(self, state, name, seq, confirm_window, ender):
         """Queue only the starter; the ender is chosen when the hit is seen."""
         self._q(name, seq)
-        self.confirm = {"frame": state["frame"], "until": state["frame"] + len(seq) + confirm_window,
+        self.confirm = {"frame": state["frame"], "press": state["frame"] + len(seq) - 1,
+                        "until": state["frame"] + len(seq) + confirm_window,
                         "opp_life": state.get("opp_life"), "name": name, "ender": ender}
         self.pending_attack={"action":name,"frame":state["frame"],
                              "opp_life":state.get("opp_life"),"dist":state.get("dist"),
@@ -127,11 +131,24 @@ class Brain:
         if not c:
             return
         ol = state.get("opp_life")
-        if c["opp_life"] is not None and ol is not None and ol < c["opp_life"] - 0.2:
+        if c["opp_life"] is not None and ol is not None and ol < c["opp_life"] - 1.0:
             self.confirm = None
-            ender = self.EX_MGB if c["ender"] == "mgb" else self.EX_JET
-            label = "EX MGB" if c["ender"] == "mgb" else "EX Jet Upper"
-            self._q(f"{c['name']} > HIT > super / {label}", self.SUPER + ender)
+            # The screen shows the hit a few frames late. If the cancel window has
+            # already closed, the ender would come out raw and whiff: skip it.
+            since = state["frame"] - c["press"]
+            window = self.CANCEL_WINDOW.get(c["name"], 10)
+            if c["ender"] == "mgb":
+                # st.HK xx EX MGB (no meter: becomes the normal MGB, still combos from st.HK)
+                if since + 5 > window:
+                    self.last_action = f"{c['name']} hit, seen too late to cancel"
+                    return
+                self._q(f"{c['name']} > HIT > EX MGB", self.EX_MGB)
+            else:
+                # HP Jet Upper first (it fits the cancel window), then super-cancel it
+                if since + 3 > window:
+                    self.last_action = f"{c['name']} hit, seen too late to cancel"
+                    return
+                self._q(f"{c['name']} > HIT > HP Jet Upper xx super", self.HP_JET + self.SUPER)
         elif state["frame"] > c["until"]:
             self.confirm = None   # blocked or whiffed: don't throw the meter away
 
@@ -350,7 +367,39 @@ class Brain:
         ))
         self.last_state = state
 
+    def _parry_projectile(self, state):
+        """Track a fireball moving toward Dudley and parry it just before contact.
+        The motion tracker reports moving objects; one that sits between the two
+        fighters and keeps travelling toward Dudley is a projectile."""
+        if not (self.char and self.char.get("projectile")):
+            return False
+        me_x, op_x = state.get("me_x"), state.get("opp_x")
+        peaks = state.get("peaks") or []
+        if me_x is None or op_x is None:
+            return False
+        lo, hi = sorted((me_x, op_x))
+        between = [p for p in peaks if lo + 5 < p < hi - 5]
+        prev = getattr(self, "proj", None)
+        if not between:
+            self.proj = None
+            return False
+        x = min(between, key=lambda p: abs(p - me_x))  # the one nearest Dudley
+        self.proj = (x, state["frame"])
+        if prev is None or state["frame"] - prev[1] > 2:
+            return False
+        speed = (abs(prev[0] - me_x) - abs(x - me_x)) / max(1, state["frame"] - prev[1])
+        if speed < 0.3:
+            return False  # not travelling toward us
+        frames_to_contact = (abs(x - me_x) - 6) / speed
+        if frames_to_contact <= self.screen_lag + 2 and state["frame"] - getattr(self, "last_proj_parry", -99) > 20:
+            self.last_proj_parry = state["frame"]
+            self._q(f"parry fireball (contact in ~{frames_to_contact:.0f}f)", [("FORWARD",), ()] + [("BACK",)] * 20)
+            return True
+        return False
+
     def decide(self, state):
+        if not state.get("exact") and self._parry_projectile(state):
+            return
         if not state.get("exact") and self._react_to_move(state):
             return
         if self.whiff_punish_at is not None and state["frame"] >= self.whiff_punish_at:

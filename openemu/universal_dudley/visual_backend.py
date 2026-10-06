@@ -56,6 +56,7 @@ class MotionTracker:
         self.p1=None
         self.p2=None
         self.strength=0.0
+        self.peaks=[]
 
     def update(self, gray):
         # gray expected around 96x72, exclude top HUD.
@@ -78,6 +79,7 @@ class MotionTracker:
             if work[i] < 0.018: break
             peaks.append(i)
             work[max(0,i-9):min(w,i+10)]=0
+        self.peaks=[float(x) for x in peaks]
         if len(peaks)<2:
             return self.p1,self.p2
         # Keep the two strongest and reasonably separated.
@@ -269,6 +271,7 @@ class VisualMacBackend:
             "facing_right":bool(me_x<op_x) if self.vcfg.get("track_sides") else (self.player==1),
             "opp_anim":None,"opp_posture":None,
             "opp_motion":self.tracker.strength,
+            "peaks":list(self.tracker.peaks),
             "fp":self._fp(vp,op_x)
         }
 
