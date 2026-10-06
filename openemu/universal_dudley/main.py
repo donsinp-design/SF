@@ -101,6 +101,7 @@ def main():
     finally:
         backend.close()
         learner.save()
+        brain.moves.save()
 
     return 0
 

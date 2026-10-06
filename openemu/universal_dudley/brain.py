@@ -4,6 +4,7 @@ from dataclasses import dataclass
 import random
 import numpy as np
 from .learning import EventContext
+from .move_memory import MoveMemory
 
 @dataclass
 class Snapshot:
@@ -34,6 +35,10 @@ class Brain:
         self.anim_key = None
         self.anim_age = 0
         self.last_threat_response = -999
+        self.moves = MoveMemory(learner.saved_dir / "opponent_moves.json")
+        self.last_keys = ()
+        self.prev_motion = 0.0
+        self.whiff_punish_at = None
 
     def _ctx(self, state):
         return EventContext(
@@ -141,6 +146,51 @@ class Brain:
     def _walk(self, toward):
         self._q("walk in" if toward else "walk out", [(("FORWARD",) if toward else ("BACK",))] * 3)
 
+    def _track_moves(self, state):
+        f = state["frame"]; d = state.get("dist"); motion = float(state.get("opp_motion") or 0.0)
+        # a move starts when the opponent's motion jumps up near us
+        if motion > .045 and self.prev_motion <= .045 and d is not None and d < 170:
+            self.moves.start(f, d)
+            self.reacted = False
+        self.prev_motion = motion
+        ev = self.moves.event
+        if ev is not None and ev["move"] is None and f - ev["start"] >= 2:
+            self.moves.identify(state.get("fp"))
+        if self.last_state is not None:
+            ml, old = state.get("me_life"), self.last_state.get("me_life")
+            if ml is not None and old is not None and ml < old - 0.2:
+                self.moves.note_damage(f, self.last_keys)
+        self.moves.finish_if_due(f, self.last_keys)
+
+    def _react_to_move(self, state):
+        """Decide once per opponent move, using what was learned about it."""
+        ev = self.moves.event
+        if ev is None or getattr(self, "reacted", True) or ev["move"] is None:
+            return False
+        self.reacted = True
+        m, d = ev["move"], state.get("dist") or 0
+        elapsed = state["frame"] - ev["start"]
+        rate, n = m.hit_rate(d)
+        if n >= 3 and rate is not None and rate < 0.15:
+            # never connects from here: a bait. Don't flinch; punish the whiff.
+            self.queue.clear()
+            self.last_action = f"ignore bait (hit {rate:.0%} of {n} from here)"
+            delay = m.delay()
+            self.whiff_punish_at = state["frame"] + int(max(6, (delay or 10) + 4 - elapsed))
+            return True
+        if m.overhead():
+            self._q("stand block (learned overhead)", [("BACK",)] * 18)
+            return True
+        delay = m.delay()
+        if delay is not None and m.seen >= 1:
+            # timed low parry: tap down ~2 frames before it usually hits, then block
+            wait = max(0, int(round(delay - elapsed - 2)))
+            self._q(f"timed low parry (hits ~{delay:.0f}f)", [("DOWN","BACK")] * wait + [(), ("DOWN",), ()] + [("DOWN","BACK")] * 14)
+            self.punish_check = {"frame": state["frame"] + wait + 17, "life": state.get("me_life")}
+            return True
+        self._guard_then_punish(state, frames=16)  # unknown move: safe option select, and learn
+        return True
+
     def _learn_from_damage(self, state):
         if self.last_state is None:
             return
@@ -222,6 +272,8 @@ class Brain:
             self.anim_key = key
             self.anim_age = 0
 
+        if not state.get("exact"):
+            self._track_moves(state)
         self._learn_from_damage(state)
         self._learn_attack_result(state)
 
@@ -235,6 +287,14 @@ class Brain:
         self.last_state = state
 
     def decide(self, state):
+        if not state.get("exact") and self._react_to_move(state):
+            return
+        if self.whiff_punish_at is not None and state["frame"] >= self.whiff_punish_at:
+            self.whiff_punish_at = None
+            if (state.get("dist") or 999) < 110:
+                self._mid_combo(state)
+                self.last_action = "whiff punish: MP xx HP Jet Upper"
+                return
         self.preempt(state)
         if self.queue:
             return
@@ -264,7 +324,7 @@ class Brain:
 
         # A strong nearby motion burst is the visual backend's best attack-start
         # signal: attempt a forward parry and immediately punish.
-        if not state.get("exact") and d is not None and d<130 and motion>.045:
+        if not state.get("exact") and d is not None and d<130 and motion>.045 and self.moves.event is None:
             self._guard_then_punish(state, frames=16)
             return
 
@@ -298,6 +358,5 @@ class Brain:
             self._walk(True)
 
     def next_keys(self):
-        if not self.queue:
-            return ()
-        return self.queue.popleft()
+        self.last_keys = self.queue.popleft() if self.queue else ()
+        return self.last_keys
