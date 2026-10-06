@@ -119,7 +119,10 @@ class Brain:
         # sweeps. Hold down-back, which blocks sweeps, lows, mids and fireballs.
         # If the guard held (no damage) their move is usually still recovering,
         # so punish with 2LK 2LK xx Jet Upper when close.
-        self._q("guard (down-back)", [("DOWN","BACK")] * frames)
+        # Low parry option select: from neutral tap DOWN (opens the low-parry
+        # window), then hold DOWN-BACK. A low that arrives in the window is
+        # parried; anything later is blocked. Overheads still get through.
+        self._q("low parry > block", [(), ("DOWN",), ()] + [("DOWN","BACK")] * frames)
         self.defend_until = state["frame"] + frames
         self.punish_check = {"frame": state["frame"] + frames, "life": state.get("me_life")}
 
@@ -243,7 +246,7 @@ class Brain:
             d = state.get("dist")
             if held and d is not None and d < 70:
                 self._close_combo(state)
-                self.last_action = "punish after block: 2LK 2LK xx HP Jet Upper"
+                self.last_action = "punish after parry/block: 2LK 2LK xx HP Jet Upper"
                 return
 
         threat, score = self._threat_now(state)
