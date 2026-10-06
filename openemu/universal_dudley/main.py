@@ -67,6 +67,7 @@ def main():
             start=time.perf_counter()
             st=backend.read_state()
             if st is None:
+                # no game window: send nothing
                 misses+=1
                 if misses%120==1: print("Waiting for readable game state...")
                 backend.release_all()

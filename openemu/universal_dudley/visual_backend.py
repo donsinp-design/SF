@@ -134,12 +134,12 @@ class VisualMacBackend:
         self.kbd=KarabinerKeys()
         activate(self.names)
 
-    def _focus_game(self):
-        # the virtual keyboard types into whichever app is in front
+    def _game_in_front(self):
+        # The virtual keyboard types into whichever app is in front, so only
+        # send keys while OpenEmu itself is the front app.
         front=NSWorkspace.sharedWorkspace().frontmostApplication()
         name=(front.localizedName() or "") if front is not None else ""
-        if not any(n.lower() in name.lower() for n in self.names):
-            activate(self.names)
+        return "openemu" in name.lower()
 
     def _post(self,key,down):
         code=KEYCODES.get(str(key).lower())
@@ -275,8 +275,13 @@ class VisualMacBackend:
             else: logical=k
             physical=self.keys.get(logical)
             if physical: wanted.add(physical.lower())
+        if not self._game_in_front():
+            if self.held:
+                self.kbd.hold([])
+                self.held=set()
+            if self.frame%120==1: print("Paused: click the OpenEmu window to let the bot play.")
+            return
         if wanted!=self.held:
-            if wanted: self._focus_game()
             self.kbd.hold(sorted(wanted))
         self.held=wanted
 
