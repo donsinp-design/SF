@@ -105,28 +105,49 @@ class Brain:
     def _jet_motion(button="HP"):
         return [("FORWARD",),("DOWN",),("DOWN","FORWARD",button),(),(),()]
 
-    def _close_combo(self, state):
-        # 2LK, 2LK into HP Jet Upper. Visual mode cannot guarantee the confirm,
-        # but this is an actual offensive string rather than a lone poke.
-        seq=[("DOWN","LK"),(),(),(),("DOWN","LK"),(),()]+self._jet_motion("HP")
-        self._q("combo: 2LK 2LK xx HP Jet Upper",seq)
-        self.pending_attack={"action":"close combo","frame":state["frame"],
+    # Meter option selects. The screen bot can't read the meter, so after a
+    # confirmed hit it inputs the super first, then the EX ender: with a stock
+    # the super comes out; with only EX meter the EX move does; with no meter
+    # the EX input (MP+HP) becomes the normal version. Every branch combos.
+    SUPER = [("DOWN",),("DOWN","FORWARD"),("FORWARD",),("DOWN",),("DOWN","FORWARD"),("FORWARD","HP")]
+    EX_JET = [("FORWARD",),("DOWN",),("DOWN","FORWARD","MP","HP"),(),()]
+    EX_MGB = [("BACK",),("DOWN","BACK"),("DOWN",),("DOWN","FORWARD"),("FORWARD","MP","HP"),(),()]
+
+    def _starter(self, state, name, seq, confirm_window, ender):
+        """Queue only the starter; the ender is chosen when the hit is seen."""
+        self._q(name, seq)
+        self.confirm = {"frame": state["frame"], "until": state["frame"] + len(seq) + confirm_window,
+                        "opp_life": state.get("opp_life"), "name": name, "ender": ender}
+        self.pending_attack={"action":name,"frame":state["frame"],
                              "opp_life":state.get("opp_life"),"dist":state.get("dist"),
-                             "timeout":state["frame"]+32}
+                             "timeout":state["frame"]+len(seq)+confirm_window+20}
+
+    def _update_confirm(self, state):
+        c = getattr(self, "confirm", None)
+        if not c:
+            return
+        ol = state.get("opp_life")
+        if c["opp_life"] is not None and ol is not None and ol < c["opp_life"] - 0.2:
+            self.confirm = None
+            ender = self.EX_MGB if c["ender"] == "mgb" else self.EX_JET
+            label = "EX MGB" if c["ender"] == "mgb" else "EX Jet Upper"
+            self._q(f"{c['name']} > HIT > super / {label}", self.SUPER + ender)
+        elif state["frame"] > c["until"]:
+            self.confirm = None   # blocked or whiffed: don't throw the meter away
+
+    def _close_combo(self, state):
+        # 2LK, 2LK confirmed into super / EX Jet Upper
+        self._starter(state, "2LK 2LK", [("DOWN","LK"),(),(),(),("DOWN","LK"),(),()], 10, "jet")
 
     def _mid_combo(self, state):
-        seq=[("MP",),()]+self._jet_motion("HP")
-        self._q("combo: MP xx HP Jet Upper",seq)
-        self.pending_attack={"action":"mid combo","frame":state["frame"],
-                             "opp_life":state.get("opp_life"),"dist":state.get("dist"),
-                             "timeout":state["frame"]+26}
+        # st.HK (best poke, cancels into EX MGB / super) when it reaches, else MP
+        if (state.get("dist") or 999) > 45:
+            self._starter(state, "st.HK", [("HK",),(),()], 10, "mgb")
+        else:
+            self._starter(state, "MP", [("MP",),()], 12, "jet")
 
     def _parry_punish(self, state):
-        seq=[("FORWARD",),(),()]+[("MP",),()]+self._jet_motion("HP")
-        self._q("parry attempt > MP xx HP Jet Upper",seq)
-        self.pending_attack={"action":"parry punish","frame":state["frame"],
-                             "opp_life":state.get("opp_life"),"dist":state.get("dist"),
-                             "timeout":state["frame"]+30}
+        self._starter(state, "parry > st.HK", [("FORWARD",),(),(),("HK",),(),()], 10, "mgb")
 
     def _guard_then_punish(self, state, frames=16):
         # Visual mode can't see attack height, and a forward (high) parry loses to
@@ -260,6 +281,7 @@ class Brain:
             hit_age=self.anim_age, low=low, ranged=ranged
         )
         # Immediate correction: stop whatever we were doing and guard.
+        self.confirm = None
         self.queue.clear()
         self._guard(state, low=True, frames=12)
 
@@ -306,6 +328,7 @@ class Brain:
             self._track_moves(state)
         self._learn_from_damage(state)
         self._learn_attack_result(state)
+        self._update_confirm(state)
 
         self.history.append(Snapshot(
             frame=state["frame"], me_life=state.get("me_life"),
