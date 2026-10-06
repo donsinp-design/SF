@@ -1,0 +1,59 @@
+{
+  "fps": 60,
+  "aggression": 0.68,
+  "visual": {
+    "fingerprint_width": 32,
+    "fingerprint_height": 24,
+    "threat_distance": 0.045,
+    "damage_diff_threshold": 8.0,
+    "health_roi": {
+      "p1": [
+        0.075,
+        0.055,
+        0.455,
+        0.125
+      ],
+      "p2": [
+        0.545,
+        0.055,
+        0.925,
+        0.125
+      ]
+    }
+  },
+  "apps": {
+    "openemu": {
+      "window_names": [
+        "OpenEmu",
+        "Street Fighter III"
+      ],
+      "p1": {
+        "LEFT": "a",
+        "RIGHT": "d",
+        "DOWN": "s",
+        "UP": "w",
+        "LP": "u",
+        "MP": "i",
+        "HP": "o",
+        "LK": "j",
+        "MK": "k",
+        "HK": "l",
+        "START": "1",
+        "COIN": "5"
+      },
+      "p2": {
+        "UP": "i",
+        "DOWN": "k",
+        "LEFT": "j",
+        "RIGHT": "l",
+        "LP": "b",
+        "MP": "n",
+        "HP": "m",
+        "LK": ",",
+        "MK": ".",
+        "HK": "/",
+        "START": "p"
+      }
+    }
+  }
+}

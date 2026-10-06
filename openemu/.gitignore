@@ -1,0 +1,5 @@
+.venv/
+saved/
+__pycache__/
+karabiner_bridge/Karabiner-DriverKit-VirtualHIDDevice/
+karabiner_bridge/kbd_bridge

@@ -1,0 +1,5 @@
+numpy>=1.26
+mss>=10.0.0
+Pillow>=10.0.0
+pyobjc-framework-Quartz>=10.0
+pyobjc-framework-Cocoa>=10.0
