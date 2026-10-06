@@ -20,7 +20,9 @@
         0.125
       ]
     },
-    "track_sides": false
+    "track_sides": false,
+    "px_per_unit": 2.0,
+    "screen_lag_frames": 3
   },
   "apps": {
     "openemu": {

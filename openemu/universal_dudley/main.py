@@ -21,6 +21,7 @@ def main():
     ap.add_argument("--player",type=int,choices=(1,2),required=True)
     ap.add_argument("--swap",type=int,choices=(1,2,4),default=4)
     ap.add_argument("--aggression",type=float,default=None)
+    ap.add_argument("--opponent",default=None,help="opponent character, e.g. ken, ryu, necro")
     args=ap.parse_args()
 
     root=Path(__file__).resolve().parent.parent
@@ -37,7 +38,10 @@ def main():
         return 2
     brain=Brain(args.player,learner,args.emulator,
                 aggression=float(args.aggression if args.aggression is not None else cfg["aggression"]),
-                visual_threshold=float(cfg["visual"]["threat_distance"]))
+                visual_threshold=float(cfg["visual"]["threat_distance"]),
+                opponent=args.opponent or cfg.get("opponent"),
+                px_per_unit=float(cfg["visual"].get("px_per_unit",2.0)),
+                screen_lag=int(cfg["visual"].get("screen_lag_frames",3)))
 
     print()
     print("UNIVERSAL DUDLEY AI")

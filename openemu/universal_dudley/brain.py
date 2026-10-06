@@ -19,7 +19,8 @@ class Snapshot:
     facing_right: bool
 
 class Brain:
-    def __init__(self, player, learner, emulator, aggression=0.38, visual_threshold=0.105):
+    def __init__(self, player, learner, emulator, aggression=0.38, visual_threshold=0.105,
+                 opponent=None, px_per_unit=2.0, screen_lag=3):
         self.player = player
         self.learner = learner
         self.emulator = emulator
@@ -39,6 +40,14 @@ class Brain:
         self.last_keys = ()
         self.prev_motion = 0.0
         self.whiff_punish_at = None
+        # Frame data for the opponent's character (from effie's recorded data):
+        # their longest normal's reach, and the startup of their lows.
+        import json
+        from pathlib import Path
+        table = json.loads((Path(__file__).with_name("char_data.json")).read_text())
+        self.char = table.get((opponent or "").lower())
+        self.px_per_unit = px_per_unit   # screen-distance units -> game pixels
+        self.screen_lag = screen_lag     # frames between the game drawing and the bot seeing it
 
     def _ctx(self, state):
         return EventContext(
@@ -171,6 +180,14 @@ class Brain:
         m, d = ev["move"], state.get("dist") or 0
         elapsed = state["frame"] - ev["start"]
         rate, n = m.hit_rate(d)
+        gpx = d * self.px_per_unit
+        if self.char and gpx > self.char["max_reach"] + 16:
+            # Frame data says nothing they have can reach from here: it's a bait
+            # (or a whiffed poke). Don't flinch; punish the recovery.
+            self.queue.clear()
+            self.last_action = f"ignore: out of range ({gpx:.0f}px > {self.char['max_reach']}px)"
+            self.whiff_punish_at = state["frame"] + int(self.char["median_startup"]) + 6
+            return True
         if n >= 3 and rate is not None and rate < 0.15:
             # never connects from here: a bait. Don't flinch; punish the whiff.
             self.queue.clear()
@@ -187,6 +204,19 @@ class Brain:
             wait = max(0, int(round(delay - elapsed - 2)))
             self._q(f"timed low parry (hits ~{delay:.0f}f)", [("DOWN","BACK")] * wait + [(), ("DOWN",), ()] + [("DOWN","BACK")] * 14)
             self.punish_check = {"frame": state["frame"] + wait + 17, "life": state.get("me_life")}
+            return True
+        if self.char:
+            # Unknown move but known character: time the low parry from their
+            # lows' startup that can reach this distance, minus the screen lag.
+            reachable = [v["startup"] for v in self.char["lows"].values() if v["reach"] + 16 >= gpx]
+            if reachable:
+                wait = max(0, min(reachable) - 2 - self.screen_lag - elapsed)
+                self._q(f"frame-data low parry ({min(reachable)}f low)",
+                        [("DOWN","BACK")] * wait + [(), ("DOWN",), ()] + [("DOWN","BACK")] * 14)
+                self.punish_check = {"frame": state["frame"] + wait + 17, "life": state.get("me_life")}
+                return True
+            # no low reaches this far: only a high/mid can hit, so stand-block it
+            self._q("stand block (no low reaches)", [("BACK",)] * 16)
             return True
         self._guard_then_punish(state, frames=16)  # unknown move: safe option select, and learn
         return True

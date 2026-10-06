@@ -1,0 +1,422 @@
+{
+ "alex": {
+  "max_reach": 136,
+  "median_startup": 8.5,
+  "fastest_startup": 5,
+  "lows": {
+   "d_LK": {
+    "startup": 6,
+    "reach": 90
+   },
+   "d_HK": {
+    "startup": 12,
+    "reach": 136
+   },
+   "d_MK": {
+    "startup": 9,
+    "reach": 105
+   }
+  },
+  "longest": "d_HK"
+ },
+ "chunli": {
+  "max_reach": 161,
+  "median_startup": 8.0,
+  "fastest_startup": 3,
+  "lows": {
+   "d_HK": {
+    "startup": 8,
+    "reach": 97
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 81
+   },
+   "d_MK": {
+    "startup": 7,
+    "reach": 101
+   }
+  },
+  "longest": "f_MK"
+ },
+ "dudley": {
+  "max_reach": 153,
+  "median_startup": 6,
+  "fastest_startup": 4,
+  "lows": {
+   "d_HK": {
+    "startup": 16,
+    "reach": 110
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 73
+   },
+   "d_MK": {
+    "startup": 10,
+    "reach": 102
+   }
+  },
+  "longest": "f_HP"
+ },
+ "elena": {
+  "max_reach": 173,
+  "median_startup": 8.5,
+  "fastest_startup": 4,
+  "lows": {
+   "d_MK": {
+    "startup": 9,
+    "reach": 102
+   },
+   "d_HK": {
+    "startup": 12,
+    "reach": 110
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 88
+   }
+  },
+  "longest": "df_HK"
+ },
+ "gill": {
+  "max_reach": 178,
+  "median_startup": 6.5,
+  "fastest_startup": 3,
+  "lows": {
+   "d_LK": {
+    "startup": 4,
+    "reach": 100
+   },
+   "d_MK": {
+    "startup": 3,
+    "reach": 100
+   },
+   "d_HK": {
+    "startup": 8,
+    "reach": 140
+   }
+  },
+  "longest": "f_MK"
+ },
+ "gouki": {
+  "max_reach": 127,
+  "median_startup": 6,
+  "fastest_startup": 5,
+  "lows": {
+   "d_HK": {
+    "startup": 8,
+    "reach": 127
+   },
+   "d_MK": {
+    "startup": 7,
+    "reach": 115
+   },
+   "d_LK": {
+    "startup": 6,
+    "reach": 80
+   }
+  },
+  "longest": "d_HK"
+ },
+ "hugo": {
+  "max_reach": 181,
+  "median_startup": 10,
+  "fastest_startup": 4,
+  "lows": {
+   "d_HK": {
+    "startup": 12,
+    "reach": 181
+   },
+   "d_MK": {
+    "startup": 9,
+    "reach": 123
+   },
+   "d_LK": {
+    "startup": 4,
+    "reach": 104
+   }
+  },
+  "longest": "d_HK"
+ },
+ "ibuki": {
+  "max_reach": 166,
+  "median_startup": 7.0,
+  "fastest_startup": 3,
+  "lows": {
+   "d_HK": {
+    "startup": 11,
+    "reach": 123
+   },
+   "d_LK": {
+    "startup": 6,
+    "reach": 85
+   },
+   "d_MK": {
+    "startup": 7,
+    "reach": 110
+   }
+  },
+  "longest": "f_MK"
+ },
+ "ken": {
+  "max_reach": 166,
+  "median_startup": 7,
+  "fastest_startup": 5,
+  "lows": {
+   "d_LK": {
+    "startup": 6,
+    "reach": 80
+   },
+   "d_MK": {
+    "startup": 7,
+    "reach": 113
+   },
+   "d_HK": {
+    "startup": 7,
+    "reach": 121
+   }
+  },
+  "longest": "f_MK"
+ },
+ "makoto": {
+  "max_reach": 200,
+  "median_startup": 8,
+  "fastest_startup": 5,
+  "lows": {
+   "d_HK": {
+    "startup": 11,
+    "reach": 119
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 81
+   },
+   "d_MK": {
+    "startup": 8,
+    "reach": 88
+   }
+  },
+  "longest": "f_MK"
+ },
+ "necro": {
+  "max_reach": 230,
+  "median_startup": 9,
+  "fastest_startup": 4,
+  "lows": {
+   "d_HK": {
+    "startup": 14,
+    "reach": 146
+   },
+   "d_LK": {
+    "startup": 7,
+    "reach": 105
+   },
+   "d_MK": {
+    "startup": 13,
+    "reach": 174
+   }
+  },
+  "longest": "HP"
+ },
+ "oro": {
+  "max_reach": 143,
+  "median_startup": 8,
+  "fastest_startup": 4,
+  "lows": {
+   "d_LK": {
+    "startup": 5,
+    "reach": 72
+   },
+   "d_HK": {
+    "startup": 11,
+    "reach": 98
+   },
+   "d_MK": {
+    "startup": 7,
+    "reach": 82
+   }
+  },
+  "longest": "f_MP"
+ },
+ "q": {
+  "max_reach": 183,
+  "median_startup": 9,
+  "fastest_startup": 5,
+  "lows": {
+   "d_MK": {
+    "startup": 8,
+    "reach": 95
+   },
+   "d_HK": {
+    "startup": 13,
+    "reach": 117
+   },
+   "d_LK": {
+    "startup": 7,
+    "reach": 101
+   }
+  },
+  "longest": "HP"
+ },
+ "remy": {
+  "max_reach": 134,
+  "median_startup": 9,
+  "fastest_startup": 3,
+  "lows": {
+   "d_MK": {
+    "startup": 9,
+    "reach": 114
+   },
+   "d_HK": {
+    "startup": 10,
+    "reach": 117
+   },
+   "d_LK": {
+    "startup": 4,
+    "reach": 86
+   }
+  },
+  "longest": "f_MK"
+ },
+ "ryu": {
+  "max_reach": 125,
+  "median_startup": 6.5,
+  "fastest_startup": 5,
+  "lows": {
+   "d_MK": {
+    "startup": 8,
+    "reach": 111
+   },
+   "d_LK": {
+    "startup": 6,
+    "reach": 80
+   },
+   "d_HK": {
+    "startup": 8,
+    "reach": 125
+   }
+  },
+  "longest": "d_HK"
+ },
+ "sean": {
+  "max_reach": 146,
+  "median_startup": 7.5,
+  "fastest_startup": 4,
+  "lows": {
+   "d_LK": {
+    "startup": 6,
+    "reach": 80
+   },
+   "d_MK": {
+    "startup": 8,
+    "reach": 109
+   },
+   "d_HK": {
+    "startup": 9,
+    "reach": 119
+   }
+  },
+  "longest": "f_HK"
+ },
+ "shingouki": {
+  "max_reach": 124,
+  "median_startup": 5,
+  "fastest_startup": 3,
+  "lows": {
+   "d_MK": {
+    "startup": 6,
+    "reach": 89
+   },
+   "d_LK": {
+    "startup": 4,
+    "reach": 80
+   },
+   "d_HK": {
+    "startup": 8,
+    "reach": 100
+   }
+  },
+  "longest": "HP"
+ },
+ "twelve": {
+  "max_reach": 178,
+  "median_startup": 7,
+  "fastest_startup": 4,
+  "lows": {
+   "d_MK": {
+    "startup": 9,
+    "reach": 126
+   },
+   "d_LK": {
+    "startup": 4,
+    "reach": 103
+   },
+   "d_HK": {
+    "startup": 14,
+    "reach": 142
+   }
+  },
+  "longest": "HK"
+ },
+ "urien": {
+  "max_reach": 177,
+  "median_startup": 10,
+  "fastest_startup": 5,
+  "lows": {
+   "d_MK": {
+    "startup": 8,
+    "reach": 107
+   },
+   "d_HK": {
+    "startup": 13,
+    "reach": 116
+   },
+   "d_LK": {
+    "startup": 6,
+    "reach": 97
+   }
+  },
+  "longest": "f_MK"
+ },
+ "yang": {
+  "max_reach": 156,
+  "median_startup": 8,
+  "fastest_startup": 4,
+  "lows": {
+   "d_HK": {
+    "startup": 11,
+    "reach": 124
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 73
+   },
+   "d_MK": {
+    "startup": 8,
+    "reach": 89
+   }
+  },
+  "longest": "f_MK"
+ },
+ "yun": {
+  "max_reach": 179,
+  "median_startup": 6.5,
+  "fastest_startup": 4,
+  "lows": {
+   "d_MK": {
+    "startup": 7,
+    "reach": 97
+   },
+   "d_LK": {
+    "startup": 5,
+    "reach": 73
+   },
+   "d_HK": {
+    "startup": 14,
+    "reach": 100
+   }
+  },
+  "longest": "f_HP"
+ }
+}
