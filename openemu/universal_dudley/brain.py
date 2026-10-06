@@ -190,6 +190,7 @@ class Brain:
             ml, old = state.get("me_life"), self.last_state.get("me_life")
             if ml is not None and old is not None and ml < old - 0.2:
                 self.moves.note_damage(f, self.last_keys)
+        self.moves.note_keys(self.last_keys)
         self.moves.finish_if_due(f, self.last_keys)
 
     def _react_to_move(self, state):
@@ -202,9 +203,11 @@ class Brain:
         elapsed = state["frame"] - ev["start"]
         rate, n = m.hit_rate(d)
         gpx = d * self.px_per_unit
-        if self.char and gpx > self.char["max_reach"] + 16:
-            # Frame data says nothing they have can reach from here: it's a bait
-            # (or a whiffed poke). Don't flinch; punish the recovery.
+        hit_from_here = rate is not None and rate > 0
+        if (self.char and gpx > self.char["max_reach"] + 16 and not hit_from_here
+                and not (self.char.get("projectile") and gpx < 400)):
+            # Frame data says no normal reaches from here and it has never hit us
+            # from here: a bait. Don't flinch; punish the recovery.
             self.queue.clear()
             self.last_action = f"ignore: out of range ({gpx:.0f}px > {self.char['max_reach']}px)"
             self.whiff_punish_at = state["frame"] + int(self.char["median_startup"]) + 6
@@ -216,10 +219,18 @@ class Brain:
             delay = m.delay()
             self.whiff_punish_at = state["frame"] + int(max(6, (delay or 10) + 4 - elapsed))
             return True
+        delay = m.delay(d)
         if m.overhead():
-            self._q("stand block (learned overhead)", [("BACK",)] * 18)
+            # Hits through a crouching block or low parry: an overhead or a
+            # fireball. Both can be parried high: tap forward just before it
+            # arrives, then stand-block anything after.
+            if delay is not None:
+                wait = max(0, int(round(delay - elapsed - 2)))
+                self._q(f"timed high parry (hits ~{delay:.0f}f)", [("BACK",)] * wait + [(), ("FORWARD",), ()] + [("BACK",)] * 14)
+                self.punish_check = {"frame": state["frame"] + wait + 17, "life": state.get("me_life")}
+            else:
+                self._q("stand block (learned high)", [("BACK",)] * 30)
             return True
-        delay = m.delay()
         if delay is not None and m.seen >= 1:
             # timed low parry: tap down ~2 frames before it usually hits, then block
             wait = max(0, int(round(delay - elapsed - 2)))
@@ -236,8 +247,8 @@ class Brain:
                         [("DOWN","BACK")] * wait + [(), ("DOWN",), ()] + [("DOWN","BACK")] * 14)
                 self.punish_check = {"frame": state["frame"] + wait + 17, "life": state.get("me_life")}
                 return True
-            # no low reaches this far: only a high/mid can hit, so stand-block it
-            self._q("stand block (no low reaches)", [("BACK",)] * 16)
+            # no low reaches this far: only a high/mid (or a fireball) can hit, so stand-block it
+            self._q("stand block (no low reaches)", [("BACK",)] * (45 if self.char.get("projectile") else 16))
             return True
         self._guard_then_punish(state, frames=16)  # unknown move: safe option select, and learn
         return True

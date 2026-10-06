@@ -37,7 +37,8 @@
     "reach": 101
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "dudley": {
   "max_reach": 153,
@@ -97,7 +98,8 @@
     "reach": 140
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "gouki": {
   "max_reach": 127,
@@ -117,7 +119,8 @@
     "reach": 80
    }
   },
-  "longest": "d_HK"
+  "longest": "d_HK",
+  "projectile": true
  },
  "hugo": {
   "max_reach": 181,
@@ -157,7 +160,8 @@
     "reach": 110
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "ken": {
   "max_reach": 166,
@@ -177,7 +181,8 @@
     "reach": 121
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "makoto": {
   "max_reach": 200,
@@ -217,7 +222,8 @@
     "reach": 174
    }
   },
-  "longest": "HP"
+  "longest": "HP",
+  "projectile": true
  },
  "oro": {
   "max_reach": 143,
@@ -237,7 +243,8 @@
     "reach": 82
    }
   },
-  "longest": "f_MP"
+  "longest": "f_MP",
+  "projectile": true
  },
  "q": {
   "max_reach": 183,
@@ -257,7 +264,8 @@
     "reach": 101
    }
   },
-  "longest": "HP"
+  "longest": "HP",
+  "projectile": true
  },
  "remy": {
   "max_reach": 134,
@@ -277,7 +285,8 @@
     "reach": 86
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "ryu": {
   "max_reach": 125,
@@ -297,7 +306,8 @@
     "reach": 125
    }
   },
-  "longest": "d_HK"
+  "longest": "d_HK",
+  "projectile": true
  },
  "sean": {
   "max_reach": 146,
@@ -317,7 +327,8 @@
     "reach": 119
    }
   },
-  "longest": "f_HK"
+  "longest": "f_HK",
+  "projectile": true
  },
  "shingouki": {
   "max_reach": 124,
@@ -337,7 +348,8 @@
     "reach": 100
    }
   },
-  "longest": "HP"
+  "longest": "HP",
+  "projectile": true
  },
  "twelve": {
   "max_reach": 178,
@@ -377,7 +389,8 @@
     "reach": 97
    }
   },
-  "longest": "f_MK"
+  "longest": "f_MK",
+  "projectile": true
  },
  "yang": {
   "max_reach": 156,
@@ -417,6 +430,7 @@
     "reach": 100
    }
   },
-  "longest": "f_HP"
+  "longest": "f_HP",
+  "projectile": true
  }
 }

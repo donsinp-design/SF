@@ -25,11 +25,12 @@ class Move:
         self.seen = d.get("seen", 0)
         self.hits = d.get("hits", {})          # bucket -> [hits, seen]
         self.delays = d.get("delays", [])      # frames from start to hit
+        self.delays_by_dist = d.get("delays_by_dist", {})  # bucket -> delays (fireballs take longer from further)
         self.through_low_block = d.get("through_low_block", 0)
         self.blocked_low = d.get("blocked_low", 0)
 
     def to_json(self):
-        return {"fp": self.fp.tolist(), "seen": self.seen, "hits": self.hits, "delays": self.delays[-30:],
+        return {"fp": self.fp.tolist(), "seen": self.seen, "hits": self.hits, "delays": self.delays[-30:], "delays_by_dist": {k: v[-10:] for k, v in self.delays_by_dist.items()},
                 "through_low_block": self.through_low_block, "blocked_low": self.blocked_low}
 
     def hit_rate(self, dist):
@@ -37,7 +38,11 @@ class Move:
         h, n = self.hits.get(b, [0, 0])
         return (h / n) if n else None, n
 
-    def delay(self):
+    def delay(self, dist=None):
+        if dist is not None:
+            b = self.delays_by_dist.get(str(int(dist // DIST_BUCKET)))
+            if b:
+                return float(np.median(b))
         return float(np.median(self.delays)) if self.delays else None
 
     def overhead(self):
@@ -77,7 +82,13 @@ class MoveMemory:
     # ---- event tracking -------------------------------------------------
     def start(self, frame, dist):
         if self.event is None:
-            self.event = {"start": frame, "dist": dist, "move": None, "hit": None, "keys_at_hit": None}
+            self.event = {"start": frame, "dist": dist, "move": None, "hit": None, "keys_at_hit": None, "guarded": False}
+
+    def note_keys(self, keys):
+        # Holding back means we were blocking: a move that "didn't hit" then
+        # proves nothing (it may have been blocked), so it can't count as a miss.
+        if self.event is not None and "BACK" in set(keys or ()):
+            self.event["guarded"] = True
 
     def identify(self, fp):
         """Called a couple of frames into the event with the opponent's pose."""
@@ -110,9 +121,11 @@ class MoveMemory:
         b = str(int((e["dist"] or 0) // DIST_BUCKET))
         h, n = m.hits.get(b, [0, 0])
         hit = e["hit"] is not None
-        m.hits[b] = [h + (1 if hit else 0), n + 1]
+        if hit or not e["guarded"]:
+            m.hits[b] = [h + (1 if hit else 0), n + 1]
         if hit:
             m.delays.append(e["hit"])
+            m.delays_by_dist.setdefault(b, []).append(e["hit"])
             # hit while crouch-blocking or low-parrying: it must hit high (overhead)
             if "DOWN" in (e["keys_at_hit"] or set()):
                 m.through_low_block += 1
