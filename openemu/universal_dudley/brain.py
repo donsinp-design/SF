@@ -114,6 +114,27 @@ class Brain:
                              "opp_life":state.get("opp_life"),"dist":state.get("dist"),
                              "timeout":state["frame"]+30}
 
+    def _guard_then_punish(self, state, frames=16):
+        # Visual mode can't see attack height, and a forward (high) parry loses to
+        # sweeps. Hold down-back, which blocks sweeps, lows, mids and fireballs.
+        # If the guard held (no damage) their move is usually still recovering,
+        # so punish with 2LK 2LK xx Jet Upper when close.
+        self._q("guard (down-back)", [("DOWN","BACK")] * frames)
+        self.defend_until = state["frame"] + frames
+        self.punish_check = {"frame": state["frame"] + frames, "life": state.get("me_life")}
+
+    def preempt(self, state):
+        """Called every frame before the queue advances: drop walking/neutral
+        movement the moment the opponent starts moving near us."""
+        if self.emulator == "retroarch" or not self.queue:
+            return
+        if not (self.last_action.startswith("walk") or "neutral" in self.last_action):
+            return
+        d = state.get("dist"); motion = float(state.get("opp_motion") or 0.0)
+        if d is not None and d < 130 and motion > .045:
+            self.queue.clear()
+            self._guard_then_punish(state)
+
     def _walk(self, toward):
         self._q("walk in" if toward else "walk out", [(("FORWARD",) if toward else ("BACK",))] * 3)
 
@@ -211,16 +232,27 @@ class Brain:
         self.last_state = state
 
     def decide(self, state):
+        self.preempt(state)
         if self.queue:
             return
+        pc = getattr(self, "punish_check", None)
+        if pc and state["frame"] >= pc["frame"]:
+            self.punish_check = None
+            ml = state.get("me_life")
+            held = pc["life"] is None or ml is None or ml >= pc["life"] - 0.2
+            d = state.get("dist")
+            if held and d is not None and d < 70:
+                self._close_combo(state)
+                self.last_action = "punish after block: 2LK 2LK xx HP Jet Upper"
+                return
 
         threat, score = self._threat_now(state)
         if threat is not None and state["frame"]-self.last_threat_response>18:
             self.last_threat_response=state["frame"]
-            if state.get("dist") is not None and state["dist"]<112 and random.random()<.62:
+            if state.get("exact") and state.get("dist") is not None and state["dist"]<112 and random.random()<.62:
                 self._parry_punish(state)
             else:
-                self._guard(state, low=bool(threat.get("low", True)), frames=7)
+                self._guard_then_punish(state, frames=16)
             return
 
         d = state.get("dist")
@@ -229,8 +261,8 @@ class Brain:
 
         # A strong nearby motion burst is the visual backend's best attack-start
         # signal: attempt a forward parry and immediately punish.
-        if not state.get("exact") and d is not None and d<105 and motion>.055:
-            self._parry_punish(state)
+        if not state.get("exact") and d is not None and d<130 and motion>.045:
+            self._guard_then_punish(state, frames=16)
             return
 
         # Exact mode can anti-air by position.
@@ -247,12 +279,12 @@ class Brain:
                     self._q("neutral guard", [("DOWN","BACK")] * 3)
                 return
             if d < 55:
-                if random.random()<self.aggression:
+                if motion < .03 and random.random()<self.aggression:
                     self._close_combo(state)
                 else:
                     self._q("close guard", [("DOWN","BACK")] * 2)
                 return
-            if 55 <= d <= 108 and random.random()<self.aggression*.70:
+            if 55 <= d <= 108 and motion < .03 and random.random()<self.aggression*.70:
                 self._mid_combo(state)
                 return
 

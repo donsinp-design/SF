@@ -19,7 +19,8 @@
         0.925,
         0.125
       ]
-    }
+    },
+    "track_sides": false
   },
   "apps": {
     "openemu": {

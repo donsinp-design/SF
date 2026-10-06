@@ -261,7 +261,7 @@ class VisualMacBackend:
             "me_life":me_life,"opp_life":op_life,
             "me_x":float(me_x),"opp_x":float(op_x),
             "me_y":None,"opp_y":None,"dist":float(abs(me_x-op_x))*2.0,
-            "facing_right":bool(me_x<op_x),
+            "facing_right":bool(me_x<op_x) if self.vcfg.get("track_sides") else (self.player==1),
             "opp_anim":None,"opp_posture":None,
             "opp_motion":self.tracker.strength,
             "fp":self._fp(vp,op_x)

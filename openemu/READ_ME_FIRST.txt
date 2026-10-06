@@ -19,7 +19,8 @@ OPENEMU CONTROLS (Arcade > Player 2 > Input: Keyboard) — already matching your
   Different keys? Edit "openemu" > "p2" in config.json.
 
 EVERY TIME
-1. Start 3rd Strike in OpenEmu. Pick Dudley for P2.
+1. Start 3rd Strike in OpenEmu, pick Dudley for P2 yourself, and wait for the round to start.
+   (Start the bot during the round — on the select screen it would press random buttons.)
 2. Double-click UniversalDudley.command, choose 2 (OpenEmu), then 2 (P2).
 3. Enter your Mac password once when asked.
 4. Leave the OpenEmu window in front — the virtual keyboard types into the front app.
