@@ -5,6 +5,7 @@ macOS treats Karabiner's virtual keyboard as real hardware. Karabiner only
 accepts commands from root, so the small kbd_bridge helper runs under sudo.
 """
 from __future__ import annotations
+import atexit
 import select
 import subprocess
 import time
@@ -28,6 +29,8 @@ class KarabinerKeys:
             raise RuntimeError("The Karabiner key bridge isn't built yet. Double-click setup_karabiner.command first.")
         if not Path(DAEMON).exists():
             raise RuntimeError("Karabiner's virtual keyboard driver isn't installed. Run setup_karabiner.command first.")
+        # a bridge left over from a crashed run can keep keys held down
+        subprocess.call(["sudo", "killall", "kbd_bridge"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         if subprocess.call(["pgrep", "-f", "Karabiner-VirtualHIDDevice-Daemon"], stdout=subprocess.DEVNULL) != 0:
             print("Starting Karabiner's virtual keyboard daemon (may ask for your Mac password)...")
             subprocess.call(["sudo", "-b", DAEMON], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -39,6 +42,7 @@ class KarabinerKeys:
             r, _, _ = select.select([self.proc.stdout], [], [], 0.5)
             if r and "READY" in self.proc.stdout.readline():
                 print("Karabiner virtual keyboard connected.")
+                atexit.register(self.close)
                 return
             if self.proc.poll() is not None:
                 break

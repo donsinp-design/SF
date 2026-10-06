@@ -132,14 +132,19 @@ class VisualMacBackend:
         activate(self.names)
         from .karabiner_keys import KarabinerKeys
         self.kbd=KarabinerKeys()
+        self.kbd.hold([])  # release anything left held by a previous run
         activate(self.names)
 
     def _game_in_front(self):
         # The virtual keyboard types into whichever app is in front, so only
-        # send keys while OpenEmu itself is the front app.
-        front=NSWorkspace.sharedWorkspace().frontmostApplication()
-        name=(front.localizedName() or "") if front is not None else ""
-        return "openemu" in name.lower()
+        # send keys while OpenEmu itself is the front app. NSWorkspace's
+        # frontmostApplication goes stale in a script without a run loop, so
+        # read the live window order instead: the first normal window is in front.
+        opts=Quartz.kCGWindowListOptionOnScreenOnly|Quartz.kCGWindowListExcludeDesktopElements
+        for r in Quartz.CGWindowListCopyWindowInfo(opts,Quartz.kCGNullWindowID) or []:
+            if int(r.get(Quartz.kCGWindowLayer,1))==0:
+                return "openemu" in str(r.get(Quartz.kCGWindowOwnerName) or "").lower()
+        return False
 
     def _post(self,key,down):
         code=KEYCODES.get(str(key).lower())
