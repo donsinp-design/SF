@@ -57,6 +57,7 @@ class MotionTracker:
         self.p2=None
         self.strength=0.0
         self.peaks=[]
+        self.locked=False
 
     def update(self, gray):
         # gray expected around 96x72, exclude top HUD.
@@ -80,6 +81,7 @@ class MotionTracker:
             peaks.append(i)
             work[max(0,i-9):min(w,i+10)]=0
         self.peaks=[float(x) for x in peaks]
+        self.locked=len(peaks)>=2
         if len(peaks)<2:
             return self.p1,self.p2
         # Keep the two strongest and reasonably separated.
@@ -272,6 +274,7 @@ class VisualMacBackend:
             "opp_anim":None,"opp_posture":None,
             "opp_motion":self.tracker.strength,
             "peaks":list(self.tracker.peaks),
+            "tracking":"locked" if self.tracker.locked else "LOST (last known positions)",
             "fp":self._fp(vp,op_x)
         }
 

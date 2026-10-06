@@ -308,6 +308,24 @@ class Brain:
             visual_fp=snap.fp if not state.get("exact") else None,
             hit_age=self.anim_age, low=low, ranged=ranged
         )
+        # Extra diagnostics so the log shows *why*, not just that we were hit.
+        ev = self.moves.event
+        lines = [
+            f"  keys held when hit: {'+'.join(self.last_keys) or 'nothing'}",
+            f"  tracking: {state.get('tracking','?')}  (distance {state.get('dist')})",
+            f"  opponent character: {self.char and 'known' or 'NOT SET - choose it at launch'}",
+        ]
+        if ev is not None:
+            m = ev["move"]
+            lines.append(f"  opponent move started {state['frame'] - ev['start']} frames before the hit"
+                         + (f"; seen {m.seen}x before, usual hit at {m.delay()}f, overhead={m.overhead()}" if m else "; not recognised yet"))
+        else:
+            lines.append("  no opponent move start was detected before this hit (missed it on screen)")
+        try:
+            with open(self.learner.txt_path, "a") as fh:
+                fh.write("DETAIL (latest bot)\n" + "\n".join(lines) + "\n\n")
+        except Exception:
+            pass
         # Immediate correction: stop whatever we were doing and guard.
         self.confirm = None
         self.queue.clear()
